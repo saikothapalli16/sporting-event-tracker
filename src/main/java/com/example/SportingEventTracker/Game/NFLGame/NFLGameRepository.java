@@ -26,6 +26,21 @@ public interface NFLGameRepository extends JpaRepository<NFLGame, Long> {
     @Query("SELECT g FROM NFLGame g WHERE (LOWER(g.teamHome) = LOWER(:team) OR LOWER(g.teamAway) = LOWER(:team))")
     List<NFLGame> findGamesByTeam(@Param("team") String team);
 
+    @Query("SELECT g FROM NFLGame g WHERE LOWER(g.teamHome) IN :aliases OR LOWER(g.teamAway) IN :aliases")
+    List<NFLGame> findGamesByTeamAliases(@Param("aliases") List<String> aliases);
+
+    @Query("""
+    SELECT g FROM NFLGame g
+    WHERE\s
+        (LOWER(g.teamHome) IN :teamOneAliases AND LOWER(g.teamAway) IN :teamTwoAliases)
+        OR
+        (LOWER(g.teamHome) IN :teamTwoAliases AND LOWER(g.teamAway) IN :teamOneAliases)
+""")
+    List<NFLGame> findGamesByTeamsAliases(@Param("teamOneAliases") List<String> teamOneAliases,
+                                          @Param("teamTwoAliases") List<String> teamTwoAliases);
+
+
+
 
 
 }

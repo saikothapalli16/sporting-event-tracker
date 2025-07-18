@@ -17,17 +17,18 @@ public class NFLGameService {
     public NFLGameService(NFLGameRepository nflGameRepository) {
         this.nflGameRepository = nflGameRepository;
     }
-
-
     public List<NFLGameDTO> getGames(Integer year, String teamOne, String teamTwo, Long id) {
         if (id != null) {
             return getGameById(id).map(List::of).orElse(List.of());
         } else if (teamOne != null && teamTwo != null && year != null) {
-            return getGamesByYearAndTeams(year, teamOne, teamTwo);
+            String resolvedTeamOne = resolveHistoricalTeamName(teamOne, year);
+            String resolvedTeamTwo = resolveHistoricalTeamName(teamTwo, year);
+            return getGamesByYearAndTeams(year, resolvedTeamOne, resolvedTeamTwo);
         } else if (teamOne != null && teamTwo != null) {
             return getGamesByTeams(teamOne, teamTwo);
         } else if (teamOne != null && year != null) {
-            return getGamesByYearAndTeam(year, teamOne);
+            String resolvedTeam = resolveHistoricalTeamName(teamOne, year);
+            return getGamesByYearAndTeam(year, resolvedTeam);
         } else if (year != null) {
             return getGamesByYear(year);
         } else if (teamOne != null) {
@@ -69,15 +70,51 @@ public class NFLGameService {
     }
 
     private List<NFLGameDTO> getGamesByTeams(String teamOne, String teamTwo) {
-        return nflGameRepository.findGamesByTeams(teamOne, teamTwo).stream()
+        List<String> aliasesOne = getAllHistoricalNames(teamOne).stream()
+                .map(String::toLowerCase)
+                .toList();
+        List<String> aliasesTwo = getAllHistoricalNames(teamTwo).stream()
+                .map(String::toLowerCase)
+                .toList();
+        return nflGameRepository.findGamesByTeamsAliases(aliasesOne, aliasesTwo).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
     private List<NFLGameDTO> getGamesByTeam(String team) {
-        return nflGameRepository.findGamesByTeam(team).stream()
+        List<String> aliases = getAllHistoricalNames(team).stream()
+                .map(String::toLowerCase)
+                .toList();
+        return nflGameRepository.findGamesByTeamAliases(aliases).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+
+    private List<String> getAllHistoricalNames(String canonicalName) {
+        if (canonicalName.equalsIgnoreCase("Washington Commanders")) {
+            return List.of("Washington Commanders", "Washington Football Team", "Washington Redskins");
+        } else if (canonicalName.equalsIgnoreCase("Las Vegas Raiders")) {
+            return List.of("Las Vegas Raiders", "Oakland Raiders");
+        } else if (canonicalName.equalsIgnoreCase("Los Angeles Chargers")) {
+            return List.of("Los Angeles Chargers", "San Diego Chargers");
+        }
+        return List.of(canonicalName);
+    }
+
+
+    private String resolveHistoricalTeamName(String canonicalName, int year) {
+        if (canonicalName.equalsIgnoreCase("Washington Commanders")) {
+            if (year <= 2019) return "Washington Redskins";
+            if (year == 2020 || year == 2021) return "Washington Football Team";
+            return "Washington Commanders";
+        } else if (canonicalName.equalsIgnoreCase("Las Vegas Raiders")) {
+            if (year <= 2019) return "Oakland Raiders";
+            return "Las Vegas Raiders";
+        } else if (canonicalName.equalsIgnoreCase("Los Angeles Chargers")) {
+            if (year <= 2016) return "San Diego Chargers";
+            return "Los Angeles Chargers";
+        }
+        return canonicalName;
     }
 
     private NFLGameDTO convertToDto(NFLGame game) {

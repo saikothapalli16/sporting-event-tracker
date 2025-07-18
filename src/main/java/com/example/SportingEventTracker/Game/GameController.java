@@ -5,16 +5,14 @@ import com.example.SportingEventTracker.dto.GameDTO;
 import com.example.SportingEventTracker.dto.NFLGameDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
 @RestController
 @RequestMapping(path = "api/v1/games")
+@CrossOrigin(origins = "http://localhost:3000")
 public class GameController {
 
     private final NFLGameService nflGameService;
@@ -33,6 +31,7 @@ public class GameController {
 
         switch (sport.toUpperCase()) {
             case "NFL" -> {
+
                 return nflGameService.getGames(year, teamOne, teamTwo, id);
             }
             // future: case "NBA": return nbaGameService.getAllGames() ...
